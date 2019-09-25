@@ -1,0 +1,8 @@
+**/.dubbo/**
+**/.idea/**
+**.iml
+**/target/**
+**/classes/**
+**/.bin/**
+**/.mvn/**
+**/mvn/**
