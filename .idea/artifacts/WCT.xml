@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="WCT">
+    <output-path>$PROJECT_DIR$/out/artifacts/WCT</output-path>
+    <root id="archive" name="WCT.jar">
+      <element id="dir-copy" path="$PROJECT_DIR$/src/main/java/com/duanxi/mr" />
+    </root>
+  </artifact>
+</component>
