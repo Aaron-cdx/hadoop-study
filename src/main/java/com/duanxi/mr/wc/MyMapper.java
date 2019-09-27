@@ -1,4 +1,4 @@
-package com.duanxi.mr;
+package com.duanxi.mr.wc;
 
 
 import org.apache.hadoop.io.IntWritable;
