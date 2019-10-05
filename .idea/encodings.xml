@@ -6,5 +6,7 @@
     <file url="file://$PROJECT_DIR$/src/main/java/com/duanxi/itemcf" charset="GBK" />
     <file url="file://$PROJECT_DIR$/src/main/java/com/duanxi/mr/pagerank" charset="GBK" />
     <file url="file://$PROJECT_DIR$/src/main/java/com/duanxi/mr/tfidf" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/main/resources/cdr_summ_imei_cell_info.csv" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/main/resources/hbase-site.xml" charset="GBK" />
   </component>
 </project>
