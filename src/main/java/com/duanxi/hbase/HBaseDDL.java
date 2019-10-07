@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,9 +29,7 @@ import java.util.Random;
 public class HBaseDDL {
     Connection connection;
     public Admin admin;
-    HTable table;
     String tableName = "phone";
-    String familyNames[] = {"cf"};
 
     /**
      * 实现HBase的初始化操作
@@ -138,6 +137,105 @@ public class HBaseDDL {
         Table table = connection.getTable(TableName.valueOf("phone"));
         table.put(puts);
     }
+
+
+    /*---------------------------------------------------------------------*/
+
+    /**
+     * 利用protobuf将插入的数据变为对象存储，简化rowkey
+     */
+    @Test
+    public void insertDB2() throws Exception {
+        List<Put> puts = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            String phoneNum = getPhoneNum("157");
+            for (int j = 0; j < 100; j++) {
+                String dnum = getPhoneNum("132");
+                String length = random.nextInt(99) + "";
+                String type = random.nextInt(2) + "";
+                String dateStr = getDateStr("2019");
+                // 设计rowkey,实现按照时间倒序排列
+                String rowKey = phoneNum + "_" + (Long.MAX_VALUE - sf.parse(dateStr).getTime());
+
+                // 需要实现一个build将所有的数据插入，然后再利用puts存储
+                Phone.phoneClass.Builder builder = Phone.phoneClass.newBuilder();
+                builder.setDnum(dnum);
+                builder.setLength(length);
+                builder.setType(type);
+                builder.setDateStr(dateStr);
+                Put put = new Put(rowKey.getBytes());
+                put.addColumn("cf".getBytes(), "phoneDetail".getBytes(), builder.build().toByteArray());
+                puts.add(put);
+            }
+
+        }
+        Table table = connection.getTable(TableName.valueOf("phone"));
+        table.put(puts);
+    }
+
+    /**
+     * 有10个用户，每个用户每天产生100条数据记录
+     * 如何存储，使用protobuf
+     */
+    @Test
+    public void insertDB3() throws Exception {
+        List<Put> puts = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            String phoneNum = getPhoneNum("157");
+            // 设计rowkey,实现按照时间倒序排列
+            String rowKey = phoneNum + "_" + (Long.MAX_VALUE - sf.parse(getDateStr2("20191006")).getTime());
+            // 获取存储通话记录的类似java的集合
+            PhoneDetail.phone.Builder dayPhone = PhoneDetail.phone.newBuilder();
+            for (int j = 0; j < 100; j++) {
+                String dnum = getPhoneNum("132");
+                String length = random.nextInt(99) + "";
+                String type = random.nextInt(2) + "";
+                String dateStr = getDateStr("2019");
+                // 构建单独存取通话记录的对象
+                PhoneDetail.phoneClass.Builder phoneDetail = PhoneDetail.phoneClass.newBuilder();
+                phoneDetail.setDnum(dnum);
+                phoneDetail.setLength(length);
+                phoneDetail.setType(type);
+                phoneDetail.setDateStr(dateStr);
+                // 往嵌套的message中添加数据
+                dayPhone.addPhone(phoneDetail);
+            }
+            Put put = new Put(rowKey.getBytes());
+            put.addColumn("cf".getBytes(),"day".getBytes(),dayPhone.build().toByteArray());
+            puts.add(put);
+        }
+        Table table = connection.getTable(TableName.valueOf("phone"));
+        table.put(puts);
+    }
+
+    private String getDateStr2(String s) {
+        return s + String.format("%02d%02d%02d", new Object[]{random.nextInt(24) + 1,
+                random.nextInt(60), random.nextInt(60)
+        });
+    }
+
+    /**
+     * 解析嵌套message中的内容
+     */
+    @Test
+    public void getData2() throws Exception {
+        // 获取数据集中的一个rowKey
+        String rowKey = "15797250044_9223370466558205807";
+        // 构建一个get,获取的是单行的数据
+        Get get = new Get(rowKey.getBytes());
+        // 获取表
+        Table table = connection.getTable(TableName.valueOf("phone"));
+        // 从表中获取数据
+        Result result = table.get(get);
+        // 获取列族单元格中的内容
+        Cell cell = result.getColumnLatestCell("cf".getBytes(), "day".getBytes());
+        // 需要解析单元格中序列化的内容
+        PhoneDetail.phone phone = PhoneDetail.phone.parseFrom(CellUtil.cloneValue(cell));
+        for (PhoneDetail.phoneClass phoneDetail : phone.getPhoneList()) {
+            System.out.println(phoneDetail);
+        }
+    }
+    /*---------------------------------------------------------------------*/
 
     /**
      * 获取随机时间字符串
